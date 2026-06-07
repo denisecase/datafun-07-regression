@@ -19,9 +19,8 @@ as we intended.
 
 Just knowing about testing is a valuable skill.
 Feel free to experiment with adding additional tests to this file,
-or adding additonal files.
-
-Nothing else is required.
+or adding additional files.
+Nothing regarding testing is required.
 
 Run from the project root:
 
