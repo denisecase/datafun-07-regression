@@ -1,111 +1,78 @@
-# tests/test_app_case.py
-#
-# Simple, clear pytest examples.
-# Show how to test file-writing functions without touching
-# the real project folder, and how to avoid slow sleeps.
-#
-# Assumptions:
-# - module is importable
-# - pytest running from project root
-#
-# Run:
-#   uv run python -m pytest
+"""Smoke test for the example module(s).
+
+WHY a smoke test:
+    A smoke test does NOT check that the analysis is correct.
+    It checks the cheapest, most important thing: does the file load at all?
+    A typo, a bad import, or a syntax error stops a module from importing,
+    and this test catches that, before anything else can run.
 
 
-from pathlib import Path
+WHY it does not name the module:
+    The brittle way is `from datafun import app_case`.
+    That breaks the moment the module gets renamed.
+    This test DISCOVERS the example module by
+    naming convention since my example scripts end in `case`
+    (app_case, app_co2_case, app_penguins_case, ...).
 
-from datafun_02_automation import app_case
-import pytest
+In practice, we provide unit tests to ensure each function is working
+as we intended.
+
+Just knowing about testing is a valuable skill.
+Feel free to experiment with adding additional tests to this file,
+or adding additonal files.
+
+Nothing else is required.
+
+Run from the project root:
+
+    uv run pytest
+"""
+
+import importlib
+import pkgutil
+
+import datafun
 
 
-@pytest.fixture()
-def temp_root_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def find_example_modules() -> list[str]:
+    """Find example modules in the datafun package by naming convention.
+
+    Convention: example entry-point scripts are named so the module name
+    ends in `case` (for example: app_case, app_co2_case, app_penguins_case).
+
+    Returns:
+        list[str]: Fully qualified module names, e.g. ["datafun.app_co2_case"].
     """
-    Redirect app_case.ROOT_DIR to a temporary directory so tests
-    do not write into the real working directory.
+    found: list[str] = []
+
+    # iter_modules walks the package folder and yields one entry per module.
+    for module_info in pkgutil.iter_modules(datafun.__path__):
+        if module_info.name.endswith("case"):
+            found.append(f"datafun.{module_info.name}")
+
+    return found
+
+
+def test_package_imports() -> None:
+    """The datafun package itself imports without error.
+
+    This is the simplest possible check and it always runs first.
     """
-    monkeypatch.setattr(app_case, "ROOT_DIR", tmp_path)
-    return tmp_path
+    assert datafun is not None
 
 
-def test_write_text_file_creates_file(temp_root_dir: Path) -> None:
-    path = temp_root_dir / "hello.txt"
-    app_case.write_text_file(path, "Hi\n")
+def test_example_modules_expose_main() -> None:
+    """Each example module imports cleanly and exposes a callable main().
 
-    assert path.exists()
-    assert path.read_text(encoding="utf-8") == "Hi\n"
+    Importing a module runs its top-level code (imports, logger setup) but
+    NOT main(), because main() is behind the `if __name__ == "__main__"`
+    guard. So this is safe: it does not load data or open charts.
 
+    If a repo has no example module yet, there is nothing to import and the
+    test still passes - the workflow stays green.
+    """
+    module_names: list[str] = find_example_modules()
 
-def test_create_files_for_range_writes_expected_files(temp_root_dir: Path) -> None:
-    app_case.create_files_for_range(2020, 2022)
-
-    for year in (2020, 2021, 2022):
-        p = temp_root_dir / f"p02_year_{year}.txt"
-        assert p.exists()
-        assert (
-            p.read_text(encoding="utf-8")
-            == f"Project 02 generated file for year {year}\n"
-        )
-
-
-def test_create_files_from_list_writes_expected_files(temp_root_dir: Path) -> None:
-    names = ["alpha", "beta"]
-    app_case.create_files_from_list(names)
-
-    for name in names:
-        p = temp_root_dir / f"p02_list_{name}.txt"
-        assert p.exists()
-        assert (
-            p.read_text(encoding="utf-8")
-            == f"Project 02 generated file for item '{name}'\n"
-        )
-
-
-def test_create_prefixed_files_using_list_comprehension(temp_root_dir: Path) -> None:
-    app_case.create_prefixed_files_using_list_comprehension(
-        ["csv", "json"], prefix="out_"
-    )
-
-    for name in ("out_csv", "out_json"):
-        p = temp_root_dir / f"p02_prefix_{name}.txt"
-        assert p.exists()
-        assert (
-            p.read_text(encoding="utf-8")
-            == f"Project 02 generated file for prefixed item '{name}'\n"
-        )
-
-
-def test_create_files_periodically_without_sleep(
-    temp_root_dir: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def _no_sleep(seconds: float) -> None:
-        _ = seconds  # keep it obviously "used" for teaching
-        return
-
-    monkeypatch.setattr(app_case.time, "sleep", _no_sleep)
-
-    app_case.create_files_periodically(wait_seconds=99, count=3)
-
-    for i in (1, 2, 3):
-        p = temp_root_dir / f"p02_periodic_{i:02d}.txt"
-        assert p.exists()
-        assert p.read_text(encoding="utf-8") == f"Project 02 periodic file number {i}\n"
-
-
-def test_create_standardized_files_lowercase_and_remove_spaces(
-    temp_root_dir: Path,
-) -> None:
-    names = ["North America", "Middle East"]
-    app_case.create_standardized_files(names, to_lowercase=True, remove_spaces=True)
-
-    expected = {
-        "North America": "northamerica",
-        "Middle East": "middleeast",
-    }
-
-    for original, standardized in expected.items():
-        p = temp_root_dir / f"p02_region_{standardized}.txt"
-        assert p.exists()
-        assert p.read_text(encoding="utf-8") == (
-            f"Project 02 standardized file for '{original}' -> '{standardized}'\n"
-        )
+    for name in module_names:
+        module = importlib.import_module(name)
+        assert callable(module.main), f"{name} has no callable main()"
