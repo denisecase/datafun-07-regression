@@ -8,6 +8,11 @@
 # REQ: Markdown lint should check source documentation, not generated docs,
 # dependency trees, coverage output, or runtime artifacts.
 
+# REQ: Node.js must be installed to run markdownlint-cli2, which is a Node.js package.
+#
+# Run with:
+# npx markdownlint-cli2 --fix
+
 globs:
   - "**/*.md"
 
