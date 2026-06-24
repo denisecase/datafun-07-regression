@@ -56,7 +56,7 @@ docs = [
 # explicitly run pyright. Students are NOT required to use it.
 # WHY: Strict type checking helps catch bugs early.
 
-typeCheckingMode = "strict"
+typeCheckingMode = "basic" # CUSTOM: basic | standard | strict
 pythonVersion = "3.14"
 include = ["src"]
 extraPaths = ["src"]

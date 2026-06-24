@@ -1,7 +1,7 @@
 # ============================================================
 # .github/workflows/ci-python-zensical.yml (ALL-PY-SRC)
 # ============================================================
-# Updated: 2026-06-06
+# Updated: 2026-06-24
 #
 # WHY: Validate repository hygiene, Python correctness, and documentation builds.
 # REQ: CI MUST NOT introduce arbitrary rules that are not reproducible locally.
